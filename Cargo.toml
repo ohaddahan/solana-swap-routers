@@ -2,6 +2,9 @@
 name = "solana-swap"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+authors = ["ohaddahan@gmail.com"]
+description = "Rust client for Titan/Jupiter/DFlow routers"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
