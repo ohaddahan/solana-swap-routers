@@ -5,6 +5,14 @@ edition = "2021"
 license = "MIT"
 authors = ["ohaddahan@gmail.com"]
 description = "Rust client for Titan/Jupiter/DFlow routers"
+repository = "https://github.com/ohaddahan/solana-swap-routers.git"
+documentation = "https://docs.rs/solana-swap-routers"
+exclude = [
+  ".claude/*",
+  ".github/*",
+  "scripts/*",
+  ".env*",
+]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
