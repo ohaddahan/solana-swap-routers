@@ -1,0 +1,81 @@
+[package]
+name = "solana-swap"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+base64 = "0.22"
+bincode = "1"
+futures = "0.3"
+solana-sdk = "2.3"
+solana-client = "2.3"
+solana-address-lookup-table-interface = "2.2"
+titan-rust-client = { path = "../titan-rust-client", features = ["solana"], optional = true }
+
+[features]
+default = ["jupiter", "titan", "dflow"]
+jupiter = []
+titan = ["dep:titan-rust-client"]
+dflow = []
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
+# Pedantic overrides - too noisy or not applicable
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+too_many_lines = "allow"
+module_name_repetitions = "allow"
+struct_excessive_bools = "allow"
+fn_params_excessive_bools = "allow"
+items_after_statements = "allow"
+uninlined_format_args = "allow"
+return_self_not_must_use = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+cast_possible_wrap = "allow"
+default_trait_access = "allow"
+match_same_arms = "allow"
+unused_async = "allow"
+manual_let_else = "allow"
+used_underscore_binding = "allow"
+ref_option_ref = "allow"
+ref_option = "allow"
+format_push_string = "allow"
+case_sensitive_file_extension_comparisons = "allow"
+unnecessary_wraps = "allow"
+needless_pass_by_value = "allow"
+trivially_copy_pass_by_ref = "allow"
+no_effect_underscore_binding = "allow"
+redundant_closure_for_method_calls = "allow"
+wildcard_imports = "allow"
+
+# Panic safety - deny operations that could panic
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+# Prohibit allow attributes - no exceptions
+allow_attributes = "deny"
+
+# Allow large error types - error types need rich context for good UX
+result_large_err = "allow"
+
+# No debug macros in production code
+dbg_macro = "deny"
+# No incomplete code markers
+todo = "deny"
+unimplemented = "deny"
+# Use tracing instead of println/eprintln in library code
+print_stdout = "deny"
+print_stderr = "deny"
