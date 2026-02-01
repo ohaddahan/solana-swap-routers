@@ -79,3 +79,6 @@ unimplemented = "deny"
 # Use tracing instead of println/eprintln in library code
 print_stdout = "deny"
 print_stderr = "deny"
+
+[dev-dependencies]
+dotenvy = "0.15"

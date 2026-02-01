@@ -21,7 +21,11 @@ pub struct DflowProvider {
 }
 
 impl DflowProvider {
-    pub fn new(base_url: Option<String>, api_key: Option<String>, max_route_length: Option<u32>) -> Self {
+    pub fn new(
+        base_url: Option<String>,
+        api_key: Option<String>,
+        max_route_length: Option<u32>,
+    ) -> Self {
         Self {
             client: reqwest::Client::new(),
             base_url: base_url.unwrap_or_else(|| DEFAULT_DFLOW_API_URL.to_string()),

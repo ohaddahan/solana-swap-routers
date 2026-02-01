@@ -29,6 +29,13 @@ cargo clippy -- -D warnings
 cargo fmt --check
 ```
 
+## Integration Tests
+
+- `tests/swap.rs` — quote+swap through each provider using real APIs
+- All tests are `#[ignore]`'d; run with `cargo test --test swap -- --ignored --nocapture`
+- Config via env vars: `TEST_INPUT_MINT`, `TEST_OUTPUT_MINT`, `TEST_KEYPAIR_PATH`, `TEST_RPC_URL` (required); `TEST_AMOUNT`, `TEST_SLIPPAGE_BPS`, `TEST_JUPITER_API_KEY`, `TEST_TITAN_WS_URL`, `TEST_TITAN_TOKEN`, `TEST_DFLOW_API_KEY` (optional)
+- Tests do NOT sign or send transactions — they stop after `into_unsigned_transaction()`
+
 ## Gotchas
 
 - `solana-address-lookup-table-interface` exports `AddressLookupTable` under `state::` submodule, not root
@@ -39,6 +46,9 @@ cargo fmt --check
 - Jupiter instruction data comes base64-encoded from the API
 - Dflow transaction comes base64-encoded, deserialized with bincode
 - Titan `OnceCell` lazy init means first call pays connection cost
+- Integration tests (separate binary) inherit crate-level clippy denies — need `#![allow(..., reason = "...")]` at file top for `unwrap_used`/`expect_used`/`panic`
+- `#[ignore]` requires a reason string (`#[ignore = "reason"]`) due to `clippy::ignore_without_reason`
+- `Keypair::from_bytes` is deprecated — use `Keypair::try_from(slice)` instead
 
 ## Dependencies
 

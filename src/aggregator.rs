@@ -55,7 +55,11 @@ impl SwapAggregator {
             #[cfg(feature = "titan")]
             titan: Some(TitanProvider::new(titan_ws_url, titan_token)),
             #[cfg(feature = "dflow")]
-            dflow: Some(DflowProvider::new(dflow_api_url, dflow_api_key, dflow_max_route_length)),
+            dflow: Some(DflowProvider::new(
+                dflow_api_url,
+                dflow_api_key,
+                dflow_max_route_length,
+            )),
         }
     }
 
