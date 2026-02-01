@@ -17,7 +17,7 @@ rustls = { version = "0.23", features = ["ring"], default-features = false }
 solana-sdk = "2.3"
 solana-client = "2.3"
 solana-address-lookup-table-interface = "2.2"
-titan-rust-client = { path = "../titan-rust-client", features = ["solana"], optional = true }
+titan-rust-client = { version = "0.1.8", features = ["solana"], optional = true }
 
 [features]
 default = ["jupiter", "titan", "dflow"]

@@ -5485,6 +5485,8 @@ dependencies = [
 [[package]]
 name = "titan-rust-client"
 version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7451997909067142dd7bfb4bc1ac278c781b20ac54de48c3c675940f6d78913c"
 dependencies = [
  "anyhow",
  "bytes",
