@@ -11,7 +11,8 @@ use crate::{
 
 use self::types::DflowOrderResponse;
 
-const DEFAULT_DFLOW_API_URL: &str = "https://quote-api.dflow.net";
+const DEFAULT_DFLOW_API_URL: &str = "https://dev-quote-api.dflow.net";
+const DFLOW_API_URL_ENV: &str = "DFLOW_API_URL";
 
 pub struct DflowProvider {
     pub client: reqwest::Client,
@@ -28,7 +29,9 @@ impl DflowProvider {
     ) -> Self {
         Self {
             client: reqwest::Client::new(),
-            base_url: base_url.unwrap_or_else(|| DEFAULT_DFLOW_API_URL.to_string()),
+            base_url: base_url
+                .or_else(|| std::env::var(DFLOW_API_URL_ENV).ok())
+                .unwrap_or_else(|| DEFAULT_DFLOW_API_URL.to_string()),
             api_key,
             max_route_length,
         }
@@ -61,6 +64,7 @@ impl DflowProvider {
             "outputMint": request.output_mint.to_string(),
             "amount": request.amount,
             "slippageBps": request.slippage_bps.unwrap_or(default_slippage_bps),
+            "onlyDirectRoutes": request.only_direct_routes,
         });
 
         Ok(QuoteResponse {
@@ -87,11 +91,14 @@ impl DflowProvider {
             SwapError::Serialization("missing slippageBps in provider_data".to_string())
         })? as u16;
 
+        let only_direct_routes = quote.provider_data["onlyDirectRoutes"].as_bool();
+
         let request = QuoteRequest {
             input_mint: quote.input_mint,
             output_mint: quote.output_mint,
             amount,
             slippage_bps: Some(slippage_bps),
+            only_direct_routes,
         };
 
         let response = self
@@ -145,6 +152,11 @@ impl DflowProvider {
 
         if let Some(max_legs) = self.max_route_length {
             query.push(("maxRouteLength", max_legs.to_string()));
+        }
+
+        if let Some(direct) = request.only_direct_routes {
+            query.push(("onlyDirectRoutes", direct.to_string()));
+        } else if self.max_route_length.is_some() {
             query.push(("onlyDirectRoutes", "false".to_string()));
         }
 

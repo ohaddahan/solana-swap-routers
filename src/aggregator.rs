@@ -30,6 +30,8 @@ pub struct SwapAggregator {
 
 impl SwapAggregator {
     pub fn new(config: SwapConfig) -> Self {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+
         let SwapConfig {
             default_slippage_bps,
             jupiter_api_url,

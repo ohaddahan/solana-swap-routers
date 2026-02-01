@@ -18,6 +18,7 @@ use crate::{
 use self::types::select_best_route;
 
 const DEFAULT_TITAN_WS_URL: &str = "wss://api.titan.ag/api/v1/ws";
+const TITAN_WS_URL_ENV: &str = "TITAN_WS_URL";
 
 pub struct TitanProvider {
     pub ws_url: String,
@@ -28,7 +29,9 @@ pub struct TitanProvider {
 impl TitanProvider {
     pub fn new(ws_url: Option<String>, token: Option<String>) -> Self {
         Self {
-            ws_url: ws_url.unwrap_or_else(|| DEFAULT_TITAN_WS_URL.to_string()),
+            ws_url: ws_url
+                .or_else(|| std::env::var(TITAN_WS_URL_ENV).ok())
+                .unwrap_or_else(|| DEFAULT_TITAN_WS_URL.to_string()),
             token: token.unwrap_or_default(),
             client: OnceCell::new(),
         }
@@ -72,6 +75,7 @@ impl TitanProvider {
             "outputMint": request.output_mint.to_string(),
             "amount": request.amount,
             "slippageBps": slippage_bps,
+            "onlyDirectRoutes": request.only_direct_routes,
         });
 
         Ok(QuoteResponse {
@@ -101,6 +105,8 @@ impl TitanProvider {
             .as_u64()
             .map(|v| v as u16);
 
+        let only_direct_routes = quote.provider_data["onlyDirectRoutes"].as_bool();
+
         let swap_request = SwapQuoteRequest {
             swap: SwapParams {
                 input_mint: quote.input_mint.to_bytes().into(),
@@ -108,7 +114,7 @@ impl TitanProvider {
                 amount,
                 swap_mode: Some(SwapMode::ExactIn),
                 slippage_bps,
-                only_direct_routes: Some(true),
+                only_direct_routes,
                 ..Default::default()
             },
             transaction: TransactionParams {

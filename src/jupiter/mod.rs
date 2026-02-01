@@ -23,6 +23,7 @@ use self::types::{
 };
 
 const DEFAULT_JUPITER_API_URL: &str = "https://lite-api.jup.ag/swap/v1";
+const JUPITER_API_URL_ENV: &str = "JUPITER_API_URL";
 
 pub struct JupiterProvider {
     pub client: reqwest::Client,
@@ -34,7 +35,9 @@ impl JupiterProvider {
     pub fn new(base_url: Option<String>, api_key: Option<String>) -> Self {
         Self {
             client: reqwest::Client::new(),
-            base_url: base_url.unwrap_or_else(|| DEFAULT_JUPITER_API_URL.to_string()),
+            base_url: base_url
+                .or_else(|| std::env::var(JUPITER_API_URL_ENV).ok())
+                .unwrap_or_else(|| DEFAULT_JUPITER_API_URL.to_string()),
             api_key,
         }
     }
@@ -49,6 +52,7 @@ impl JupiterProvider {
             output_mint: request.output_mint.to_string(),
             amount: request.amount,
             slippage_bps: request.slippage_bps.unwrap_or(default_slippage_bps),
+            only_direct_routes: request.only_direct_routes,
         };
 
         let url = format!("{}/quote", self.base_url);

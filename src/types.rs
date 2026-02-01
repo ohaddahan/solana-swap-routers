@@ -4,6 +4,7 @@ use solana_sdk::{
     instruction::Instruction,
     message::{v0, VersionedMessage},
     pubkey::Pubkey,
+    signature::Signature,
     transaction::VersionedTransaction,
 };
 
@@ -32,6 +33,7 @@ pub struct QuoteRequest {
     pub output_mint: Pubkey,
     pub amount: u64,
     pub slippage_bps: Option<u16>,
+    pub only_direct_routes: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -66,7 +68,17 @@ impl SwapResult {
         blockhash: Hash,
     ) -> Result<VersionedTransaction, SwapError> {
         match self {
-            Self::Transaction { transaction, .. } => Ok(transaction),
+            Self::Transaction {
+                mut transaction, ..
+            } => {
+                match &mut transaction.message {
+                    VersionedMessage::Legacy(m) => m.recent_blockhash = blockhash,
+                    VersionedMessage::V0(m) => m.recent_blockhash = blockhash,
+                }
+                let num_signers = transaction.message.header().num_required_signatures as usize;
+                transaction.signatures = vec![Signature::default(); num_signers];
+                Ok(transaction)
+            }
             Self::Instructions {
                 instructions,
                 address_lookup_tables,
@@ -79,11 +91,12 @@ impl SwapResult {
                     blockhash,
                 )
                 .map_err(|e| SwapError::Solana(e.to_string()))?;
-                Ok(VersionedTransaction::try_new(
-                    VersionedMessage::V0(message),
-                    &[] as &[&dyn solana_sdk::signer::Signer],
-                )
-                .map_err(|e| SwapError::Solana(e.to_string()))?)
+                let num_signers = message.header.num_required_signatures as usize;
+                let message = VersionedMessage::V0(message);
+                Ok(VersionedTransaction {
+                    signatures: vec![Signature::default(); num_signers],
+                    message,
+                })
             }
         }
     }

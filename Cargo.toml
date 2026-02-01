@@ -13,6 +13,7 @@ tracing = "0.1"
 base64 = "0.22"
 bincode = "1"
 futures = "0.3"
+rustls = { version = "0.23", features = ["ring"], default-features = false }
 solana-sdk = "2.3"
 solana-client = "2.3"
 solana-address-lookup-table-interface = "2.2"

@@ -7,6 +7,8 @@ pub struct JupiterQuoteParams {
     pub output_mint: String,
     pub amount: u64,
     pub slippage_bps: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub only_direct_routes: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
