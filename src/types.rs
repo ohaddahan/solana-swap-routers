@@ -45,7 +45,7 @@ pub struct QuoteResponse {
     pub output_amount: u64,
     pub price_impact_bps: Option<u16>,
     pub slippage_bps: u16,
-    pub(crate) provider_data: serde_json::Value,
+    pub provider_data: serde_json::Value,
 }
 
 #[derive(Debug)]

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>solana-swap Architecture Map</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; color: #e1e4e8; height: 100vh; overflow: hidden; }
+
+  .layout { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 1fr auto; height: 100vh; }
+  .sidebar { grid-row: 1 / 3; background: #161822; border-right: 1px solid #2d3045; overflow-y: auto; padding: 16px; }
+  .canvas-area { position: relative; overflow: hidden; background: #0f1117; }
+  .prompt-area { background: #161822; border-top: 1px solid #2d3045; padding: 12px 16px; max-height: 200px; overflow-y: auto; grid-column: 2; }
+
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: #8b8fa3; margin-bottom: 10px; }
+  h3 { font-size: 12px; font-weight: 600; color: #8b8fa3; margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .5px; }
+
+  .title { font-size: 16px; font-weight: 700; color: #c9d1d9; margin-bottom: 4px; }
+  .subtitle { font-size: 11px; color: #6b7280; margin-bottom: 16px; }
+
+  .preset-btn { display: block; width: 100%; padding: 7px 10px; margin-bottom: 4px; background: #1e2130; border: 1px solid #2d3045; border-radius: 6px; color: #c9d1d9; font-size: 12px; cursor: pointer; text-align: left; transition: all .15s; }
+  .preset-btn:hover { background: #262940; border-color: #3b82f6; }
+  .preset-btn.active { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+
+  .toggle-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; font-size: 12px; }
+  .toggle-row input { accent-color: #3b82f6; }
+  .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .legend-line { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8b8fa3; margin: 2px 0; }
+  .legend-line svg { width: 30px; height: 10px; }
+
+  .comments-list { margin-top: 8px; }
+
+  .prompt-box { background: #1e2130; border-radius: 6px; padding: 10px 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: #c9d1d9; white-space: pre-wrap; line-height: 1.5; min-height: 40px; }
+  .copy-btn { margin-top: 8px; padding: 6px 14px; background: #3b82f6; border: none; border-radius: 5px; color: #fff; font-size: 12px; cursor: pointer; font-weight: 600; }
+  .copy-btn:hover { background: #2563eb; }
+  .copy-btn.copied { background: #10b981; }
+
+  svg text { font-family: system-ui, -apple-system, sans-serif; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #1e2130; border: 1px solid #2d3045; border-radius: 10px; padding: 20px; width: 380px; max-width: 90vw; }
+  .modal .modal-title { font-size: 14px; font-weight: 700; color: #c9d1d9; }
+  .modal .modal-file { font-size: 11px; color: #6b7280; margin-bottom: 10px; }
+  .modal textarea { width: 100%; height: 80px; background: #0f1117; border: 1px solid #2d3045; border-radius: 6px; color: #c9d1d9; font-size: 12px; padding: 8px; resize: vertical; font-family: system-ui; }
+  .modal .modal-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+  .modal .modal-actions button { padding: 6px 14px; border-radius: 5px; border: none; font-size: 12px; cursor: pointer; font-weight: 600; }
+  .modal .btn-save { background: #3b82f6; color: #fff; }
+  .modal .btn-cancel { background: #2d3045; color: #c9d1d9; }
+
+  .zoom-controls { position: absolute; bottom: 12px; right: 12px; display: flex; gap: 4px; z-index: 10; }
+  .zoom-btn { width: 30px; height: 30px; background: #1e2130; border: 1px solid #2d3045; border-radius: 6px; color: #c9d1d9; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .zoom-btn:hover { background: #262940; border-color: #3b82f6; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="sidebar">
+    <div class="title">solana-swap</div>
+    <div class="subtitle">Architecture Map</div>
+
+    <h2>Views</h2>
+    <div id="presets"></div>
+
+    <h3>Layers</h3>
+    <div id="layer-toggles"></div>
+
+    <h3>Connections</h3>
+    <div id="conn-toggles"></div>
+
+    <h3>Legend</h3>
+    <div id="legend"></div>
+
+    <h3>Comments (<span id="comment-count">0</span>)</h3>
+    <div id="comments-list" class="comments-list"></div>
+  </div>
+
+  <div class="canvas-area">
+    <svg id="diagram" width="100%" height="100%"></svg>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+      <button class="zoom-btn" onclick="zoomOut()">&minus;</button>
+      <button class="zoom-btn" onclick="zoomReset()" style="font-size:11px">1:1</button>
+    </div>
+  </div>
+
+  <div class="prompt-area">
+    <div class="prompt-box" id="prompt-output"></div>
+    <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-file" id="modal-file"></div>
+    <textarea id="modal-text" placeholder="Add feedback about this component..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveComment()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+const LAYERS = {
+  public:   { label: 'Public API',   color: '#dbeafe', text: '#1e40af' },
+  core:     { label: 'Core Logic',   color: '#f3e8ff', text: '#6b21a8' },
+  jupiter:  { label: 'Jupiter',      color: '#fef3c7', text: '#92400e' },
+  titan:    { label: 'Titan',        color: '#dcfce7', text: '#166534' },
+  dflow:    { label: 'Dflow',        color: '#fce7f3', text: '#9d174d' },
+  external: { label: 'External APIs', color: '#fecaca', text: '#991b1b' },
+  tests:    { label: 'Tests',        color: '#e0e7ff', text: '#3730a3' },
+};
+
+const CONN_TYPES = {
+  'data-flow':  { label: 'Data Flow',     color: '#3b82f6', dash: ''       },
+  'dispatch':   { label: 'Dispatch',       color: '#f59e0b', dash: '6,3'   },
+  'provider':   { label: 'Provider Data',  color: '#10b981', dash: '4,4'   },
+  'http':       { label: 'HTTP / WS',      color: '#ef4444', dash: '8,4'   },
+  'test':       { label: 'Test Uses',      color: '#6b7280', dash: '3,3'   },
+};
+
+const nodes = [
+  { id: 'swap-agg',     label: 'SwapAggregator',      subtitle: 'src/aggregator.rs',     x: 370, y: 30,  w: 160, h: 48, layer: 'public' },
+  { id: 'swap-config',  label: 'SwapConfig',           subtitle: 'src/types.rs',          x: 150, y: 30,  w: 130, h: 48, layer: 'public' },
+  { id: 'quote-req',    label: 'QuoteRequest',         subtitle: 'src/types.rs',          x: 590, y: 30,  w: 140, h: 48, layer: 'public' },
+
+  { id: 'quote-resp',   label: 'QuoteResponse',        subtitle: 'src/types.rs',          x: 280, y: 120, w: 150, h: 48, layer: 'core' },
+  { id: 'swap-result',  label: 'SwapResult',           subtitle: 'src/types.rs',          x: 490, y: 120, w: 140, h: 48, layer: 'core' },
+  { id: 'swap-error',   label: 'SwapError',            subtitle: 'src/error.rs',          x: 690, y: 120, w: 120, h: 48, layer: 'core' },
+  { id: 'provider-enum',label: 'Provider',             subtitle: 'src/types.rs',          x: 100, y: 120, w: 120, h: 48, layer: 'core' },
+
+  { id: 'jup-provider', label: 'JupiterProvider',      subtitle: 'src/jupiter/mod.rs',    x: 80,  y: 240, w: 155, h: 48, layer: 'jupiter' },
+  { id: 'jup-types',    label: 'JupiterQuoteParams',   subtitle: 'src/jupiter/types.rs',  x: 80,  y: 310, w: 155, h: 48, layer: 'jupiter' },
+
+  { id: 'titan-provider', label: 'TitanProvider',      subtitle: 'src/titan/mod.rs',      x: 330, y: 240, w: 155, h: 48, layer: 'titan' },
+  { id: 'titan-types',    label: 'select_best_route',  subtitle: 'src/titan/types.rs',    x: 330, y: 310, w: 155, h: 48, layer: 'titan' },
+
+  { id: 'dflow-provider', label: 'DflowProvider',      subtitle: 'src/dflow/mod.rs',      x: 580, y: 240, w: 155, h: 48, layer: 'dflow' },
+  { id: 'dflow-types',    label: 'DflowOrderResponse', subtitle: 'src/dflow/types.rs',    x: 580, y: 310, w: 155, h: 48, layer: 'dflow' },
+
+  { id: 'jup-api',      label: 'Jupiter REST API',     subtitle: 'lite-api.jup.ag',       x: 80,  y: 400, w: 155, h: 42, layer: 'external' },
+  { id: 'titan-ws',     label: 'Titan WebSocket',      subtitle: 'api.titan.ag',          x: 330, y: 400, w: 155, h: 42, layer: 'external' },
+  { id: 'dflow-api',    label: 'Dflow REST API',       subtitle: 'dev-quote-api.dflow.net', x: 580, y: 400, w: 155, h: 42, layer: 'external' },
+
+  { id: 'test-main',    label: 'tests/main.rs',        subtitle: '7 tests, #[ignore]',   x: 810, y: 30,  w: 140, h: 42, layer: 'tests' },
+  { id: 'test-common',  label: 'tests/common',         subtitle: 'TestEnv + helpers',     x: 810, y: 90,  w: 140, h: 42, layer: 'tests' },
+  { id: 'test-jup',     label: 'tests/jupiter/',       subtitle: '2 tests',              x: 810, y: 240, w: 140, h: 36, layer: 'tests' },
+  { id: 'test-titan',   label: 'tests/titan/',         subtitle: '2 tests',              x: 810, y: 286, w: 140, h: 36, layer: 'tests' },
+  { id: 'test-dflow',   label: 'tests/dflow/',         subtitle: '3 tests',              x: 810, y: 332, w: 140, h: 36, layer: 'tests' },
+];
+
+const connections = [
+  { from: 'swap-config',  to: 'swap-agg',       type: 'data-flow', label: 'new()' },
+  { from: 'quote-req',    to: 'swap-agg',       type: 'data-flow', label: 'quote()' },
+  { from: 'swap-agg',     to: 'jup-provider',   type: 'dispatch', label: 'match Jupiter' },
+  { from: 'swap-agg',     to: 'titan-provider', type: 'dispatch', label: 'match Titan' },
+  { from: 'swap-agg',     to: 'dflow-provider', type: 'dispatch', label: 'match Dflow' },
+  { from: 'swap-agg',     to: 'quote-resp',     type: 'data-flow', label: 'quote()' },
+  { from: 'swap-agg',     to: 'swap-result',    type: 'data-flow', label: 'swap()' },
+  { from: 'quote-resp',   to: 'jup-provider',   type: 'provider', label: 'provider_data (raw JSON)' },
+  { from: 'quote-resp',   to: 'titan-provider', type: 'provider', label: 'provider_data (params+routes)' },
+  { from: 'quote-resp',   to: 'dflow-provider', type: 'provider', label: 'provider_data (params)' },
+  { from: 'jup-provider', to: 'jup-types',      type: 'data-flow' },
+  { from: 'titan-provider', to: 'titan-types',  type: 'data-flow' },
+  { from: 'dflow-provider', to: 'dflow-types',  type: 'data-flow' },
+  { from: 'jup-provider', to: 'jup-api',        type: 'http', label: 'GET /quote, POST /swap-instructions' },
+  { from: 'titan-provider', to: 'titan-ws',     type: 'http', label: 'OnceCell WS' },
+  { from: 'dflow-provider', to: 'dflow-api',    type: 'http', label: 'GET /order' },
+  { from: 'swap-error',   to: 'swap-agg',       type: 'data-flow', label: 'Result<_, SwapError>' },
+  { from: 'test-main',    to: 'test-common',    type: 'test', label: 'mod common' },
+  { from: 'test-common',  to: 'swap-agg',       type: 'test', label: 'build_swap_config()' },
+  { from: 'test-jup',     to: 'test-common',    type: 'test' },
+  { from: 'test-titan',   to: 'test-common',    type: 'test' },
+  { from: 'test-dflow',   to: 'test-common',    type: 'test' },
+];
+
+const PRESETS = {
+  'full':       { label: 'Full System',      layers: ['public','core','jupiter','titan','dflow','external','tests'], conns: ['data-flow','dispatch','provider','http','test'] },
+  'providers':  { label: 'Provider Dispatch', layers: ['public','core','jupiter','titan','dflow'], conns: ['data-flow','dispatch','provider'] },
+  'data-flow':  { label: 'Data Flow Only',   layers: ['public','core','jupiter','titan','dflow','external'], conns: ['data-flow','http'] },
+  'jupiter':    { label: 'Jupiter Deep Dive', layers: ['public','core','jupiter','external'], conns: ['data-flow','dispatch','provider','http'] },
+  'tests':      { label: 'Test Structure',    layers: ['public','tests'], conns: ['test','data-flow'] },
+};
+
+const state = {
+  layers: {},
+  conns: {},
+  comments: [],
+  zoom: 1,
+  panX: 0, panY: 0,
+  preset: 'full',
+  modalNode: null,
+};
+
+Object.keys(LAYERS).forEach(k => state.layers[k] = true);
+Object.keys(CONN_TYPES).forEach(k => state.conns[k] = true);
+
+function buildControls() {
+  const presetsEl = document.getElementById('presets');
+  Object.entries(PRESETS).forEach(([key, p]) => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (key === state.preset ? ' active' : '');
+    btn.textContent = p.label;
+    btn.dataset.key = key;
+    btn.onclick = () => applyPreset(key);
+    presetsEl.appendChild(btn);
+  });
+
+  const layersEl = document.getElementById('layer-toggles');
+  Object.entries(LAYERS).forEach(([key, l]) => {
+    const row = document.createElement('label');
+    row.className = 'toggle-row';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = true;
+    cb.dataset.layer = key;
+    cb.onchange = () => { state.layers[key] = cb.checked; updateAll(); };
+    const dot = document.createElement('span');
+    dot.className = 'color-dot';
+    dot.style.background = l.color;
+    row.appendChild(cb);
+    row.appendChild(dot);
+    row.appendChild(document.createTextNode(l.label));
+    layersEl.appendChild(row);
+  });
+
+  const connsEl = document.getElementById('conn-toggles');
+  Object.entries(CONN_TYPES).forEach(([key, c]) => {
+    const row = document.createElement('label');
+    row.className = 'toggle-row';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = true;
+    cb.dataset.conn = key;
+    cb.onchange = () => { state.conns[key] = cb.checked; updateAll(); };
+    const dot = document.createElement('span');
+    dot.className = 'color-dot';
+    dot.style.background = c.color;
+    row.appendChild(cb);
+    row.appendChild(dot);
+    row.appendChild(document.createTextNode(c.label));
+    connsEl.appendChild(row);
+  });
+
+  const legendEl = document.getElementById('legend');
+  Object.entries(CONN_TYPES).forEach(([, c]) => {
+    const d = document.createElement('div');
+    d.className = 'legend-line';
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('width', '30');
+    svg.setAttribute('height', '10');
+    const line = document.createElementNS(svgNs, 'line');
+    line.setAttribute('x1', '0'); line.setAttribute('y1', '5');
+    line.setAttribute('x2', '30'); line.setAttribute('y2', '5');
+    line.setAttribute('stroke', c.color);
+    line.setAttribute('stroke-width', '2');
+    if (c.dash) line.setAttribute('stroke-dasharray', c.dash);
+    svg.appendChild(line);
+    d.appendChild(svg);
+    d.appendChild(document.createTextNode(c.label));
+    legendEl.appendChild(d);
+  });
+}
+
+function applyPreset(key) {
+  state.preset = key;
+  const p = PRESETS[key];
+  Object.keys(LAYERS).forEach(k => state.layers[k] = p.layers.includes(k));
+  Object.keys(CONN_TYPES).forEach(k => state.conns[k] = p.conns.includes(k));
+
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.key === key));
+  document.querySelectorAll('[data-layer]').forEach(cb => cb.checked = state.layers[cb.dataset.layer]);
+  document.querySelectorAll('[data-conn]').forEach(cb => cb.checked = state.conns[cb.dataset.conn]);
+  updateAll();
+}
+
+function nodeCenter(n) { return { x: n.x + n.w / 2, y: n.y + n.h / 2 }; }
+
+function renderDiagram() {
+  const svg = document.getElementById('diagram');
+  const visibleNodeIds = new Set(nodes.filter(n => state.layers[n.layer]).map(n => n.id));
+
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const svgNs = 'http://www.w3.org/2000/svg';
+
+  const defs = document.createElementNS(svgNs, 'defs');
+  Object.entries(CONN_TYPES).forEach(([key, c]) => {
+    const marker = document.createElementNS(svgNs, 'marker');
+    marker.setAttribute('id', 'arrow-' + key);
+    marker.setAttribute('markerWidth', '8');
+    marker.setAttribute('markerHeight', '6');
+    marker.setAttribute('refX', '7');
+    marker.setAttribute('refY', '3');
+    marker.setAttribute('orient', 'auto');
+    const poly = document.createElementNS(svgNs, 'polygon');
+    poly.setAttribute('points', '0 0, 8 3, 0 6');
+    poly.setAttribute('fill', c.color);
+    marker.appendChild(poly);
+    defs.appendChild(marker);
+  });
+  svg.appendChild(defs);
+
+  const panGroup = document.createElementNS(svgNs, 'g');
+  panGroup.setAttribute('transform', 'translate(' + state.panX + ',' + state.panY + ') scale(' + state.zoom + ')');
+
+  connections.forEach(c => {
+    if (!state.conns[c.type]) return;
+    const fromNode = nodes.find(n => n.id === c.from);
+    const toNode = nodes.find(n => n.id === c.to);
+    if (!fromNode || !toNode) return;
+    if (!visibleNodeIds.has(c.from) || !visibleNodeIds.has(c.to)) return;
+
+    const ct = CONN_TYPES[c.type];
+    const from = nodeCenter(fromNode);
+    const to = nodeCenter(toNode);
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const cx1 = from.x + dx * 0.3;
+    const cy1 = from.y + dy * 0.05;
+    const cx2 = to.x - dx * 0.3;
+    const cy2 = to.y - dy * 0.05;
+
+    const path = document.createElementNS(svgNs, 'path');
+    path.setAttribute('d', 'M' + from.x + ',' + from.y + ' C' + cx1 + ',' + cy1 + ' ' + cx2 + ',' + cy2 + ' ' + to.x + ',' + to.y);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', ct.color);
+    path.setAttribute('stroke-width', '1.5');
+    if (ct.dash) path.setAttribute('stroke-dasharray', ct.dash);
+    path.setAttribute('marker-end', 'url(#arrow-' + c.type + ')');
+    path.setAttribute('opacity', '0.7');
+    panGroup.appendChild(path);
+
+    if (c.label) {
+      const mx = (from.x + to.x) / 2;
+      const my = (from.y + to.y) / 2 - 6;
+      const txt = document.createElementNS(svgNs, 'text');
+      txt.setAttribute('x', String(mx));
+      txt.setAttribute('y', String(my));
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('fill', ct.color);
+      txt.setAttribute('font-size', '9');
+      txt.setAttribute('opacity', '0.8');
+      txt.textContent = c.label;
+      panGroup.appendChild(txt);
+    }
+  });
+
+  nodes.forEach(n => {
+    if (!state.layers[n.layer]) return;
+    const l = LAYERS[n.layer];
+    const hasComment = state.comments.some(c => c.target === n.id);
+    const stroke = hasComment ? '#3b82f6' : 'rgba(255,255,255,0.08)';
+    const sw = hasComment ? 2.5 : 1;
+
+    const g = document.createElementNS(svgNs, 'g');
+    g.style.cursor = 'pointer';
+    g.onclick = () => openModal(n.id);
+
+    const rect = document.createElementNS(svgNs, 'rect');
+    rect.setAttribute('x', String(n.x)); rect.setAttribute('y', String(n.y));
+    rect.setAttribute('width', String(n.w)); rect.setAttribute('height', String(n.h));
+    rect.setAttribute('rx', '8');
+    rect.setAttribute('fill', l.color);
+    rect.setAttribute('stroke', stroke);
+    rect.setAttribute('stroke-width', String(sw));
+    g.appendChild(rect);
+
+    const title = document.createElementNS(svgNs, 'text');
+    title.setAttribute('x', String(n.x + n.w / 2));
+    title.setAttribute('y', String(n.y + 20));
+    title.setAttribute('text-anchor', 'middle');
+    title.setAttribute('fill', l.text);
+    title.setAttribute('font-size', '12');
+    title.setAttribute('font-weight', '600');
+    title.textContent = n.label;
+    g.appendChild(title);
+
+    const sub = document.createElementNS(svgNs, 'text');
+    sub.setAttribute('x', String(n.x + n.w / 2));
+    sub.setAttribute('y', String(n.y + 34));
+    sub.setAttribute('text-anchor', 'middle');
+    sub.setAttribute('fill', l.text);
+    sub.setAttribute('font-size', '9');
+    sub.setAttribute('opacity', '0.7');
+    sub.textContent = n.subtitle;
+    g.appendChild(sub);
+
+    if (hasComment) {
+      const count = state.comments.filter(c => c.target === n.id).length;
+      const circle = document.createElementNS(svgNs, 'circle');
+      circle.setAttribute('cx', String(n.x + n.w - 6));
+      circle.setAttribute('cy', String(n.y + 6));
+      circle.setAttribute('r', '5');
+      circle.setAttribute('fill', '#3b82f6');
+      g.appendChild(circle);
+
+      const badge = document.createElementNS(svgNs, 'text');
+      badge.setAttribute('x', String(n.x + n.w - 6));
+      badge.setAttribute('y', String(n.y + 9.5));
+      badge.setAttribute('text-anchor', 'middle');
+      badge.setAttribute('fill', '#fff');
+      badge.setAttribute('font-size', '8');
+      badge.setAttribute('font-weight', '700');
+      badge.textContent = String(count);
+      g.appendChild(badge);
+    }
+
+    panGroup.appendChild(g);
+  });
+
+  svg.appendChild(panGroup);
+}
+
+function renderComments() {
+  const el = document.getElementById('comments-list');
+  document.getElementById('comment-count').textContent = String(state.comments.length);
+
+  while (el.firstChild) el.removeChild(el.firstChild);
+
+  if (!state.comments.length) {
+    const hint = document.createElement('div');
+    hint.style.fontSize = '11px';
+    hint.style.color = '#6b7280';
+    hint.textContent = 'Click a component to add feedback';
+    el.appendChild(hint);
+    return;
+  }
+
+  state.comments.forEach((c, i) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'background:#1e2130;border-radius:6px;padding:8px;margin-bottom:6px;font-size:11px;position:relative';
+
+    const delBtn = document.createElement('button');
+    delBtn.style.cssText = 'position:absolute;top:6px;right:6px;background:none;border:none;color:#6b7280;cursor:pointer;font-size:14px;line-height:1';
+    delBtn.textContent = '\u00d7';
+    delBtn.onmouseover = () => delBtn.style.color = '#ef4444';
+    delBtn.onmouseout = () => delBtn.style.color = '#6b7280';
+    delBtn.onclick = () => deleteComment(i);
+    item.appendChild(delBtn);
+
+    const target = document.createElement('div');
+    target.style.cssText = 'color:#93c5fd;font-weight:600';
+    target.textContent = c.targetLabel;
+    item.appendChild(target);
+
+    const file = document.createElement('div');
+    file.style.cssText = 'color:#6b7280;font-size:10px';
+    file.textContent = c.targetFile;
+    item.appendChild(file);
+
+    const text = document.createElement('div');
+    text.style.cssText = 'color:#c9d1d9;margin-top:4px';
+    text.textContent = c.text;
+    item.appendChild(text);
+
+    el.appendChild(item);
+  });
+}
+
+function updatePrompt() {
+  const el = document.getElementById('prompt-output');
+  const visibleLayers = Object.entries(state.layers).filter(([,v]) => v).map(([k]) => LAYERS[k].label);
+  const presetLabel = PRESETS[state.preset] ? PRESETS[state.preset].label : 'custom';
+
+  let parts = ['Architecture view: ' + presetLabel + ' (' + visibleLayers.join(', ') + ')'];
+  parts.push('');
+  parts.push('This is the solana-swap crate architecture. SwapAggregator dispatches to Jupiter (REST), Titan (WebSocket), and Dflow (REST) providers via enum match. QuoteResponse.provider_data carries opaque JSON between quote and swap phases. SwapResult normalizes into VersionedTransaction via into_unsigned_transaction().');
+
+  if (state.comments.length) {
+    parts.push('');
+    parts.push('Feedback on components:');
+    state.comments.forEach(c => {
+      parts.push('');
+      parts.push('**' + c.targetLabel + '** (' + c.targetFile + '):');
+      parts.push(c.text);
+    });
+  }
+
+  el.textContent = parts.join('\n');
+}
+
+function updateAll() {
+  renderDiagram();
+  renderComments();
+  updatePrompt();
+}
+
+function openModal(nodeId) {
+  const n = nodes.find(nd => nd.id === nodeId);
+  if (!n) return;
+  state.modalNode = n;
+  document.getElementById('modal-title').textContent = n.label;
+  document.getElementById('modal-file').textContent = n.subtitle;
+  document.getElementById('modal-text').value = '';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('modal-text').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  state.modalNode = null;
+}
+
+function saveComment() {
+  const text = document.getElementById('modal-text').value.trim();
+  if (!text || !state.modalNode) { closeModal(); return; }
+  state.comments.push({
+    id: Date.now(),
+    target: state.modalNode.id,
+    targetLabel: state.modalNode.label,
+    targetFile: state.modalNode.subtitle,
+    text: text,
+  });
+  closeModal();
+  updateAll();
+}
+
+function deleteComment(idx) {
+  state.comments.splice(idx, 1);
+  updateAll();
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-output').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function zoomIn()    { state.zoom = Math.min(state.zoom * 1.2, 3); renderDiagram(); }
+function zoomOut()   { state.zoom = Math.max(state.zoom / 1.2, 0.3); renderDiagram(); }
+function zoomReset() { state.zoom = 1; state.panX = 0; state.panY = 0; renderDiagram(); }
+
+let dragging = false, dragStart = { x: 0, y: 0 };
+const canvasArea = document.querySelector('.canvas-area');
+canvasArea.addEventListener('mousedown', (e) => {
+  if (e.target.closest('.zoom-btn')) return;
+  const nodeG = e.target.closest('g');
+  if (nodeG && nodeG.onclick) return;
+  dragging = true;
+  dragStart = { x: e.clientX - state.panX, y: e.clientY - state.panY };
+});
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  state.panX = e.clientX - dragStart.x;
+  state.panY = e.clientY - dragStart.y;
+  renderDiagram();
+});
+window.addEventListener('mouseup', () => { dragging = false; });
+canvasArea.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (e.deltaY < 0) zoomIn(); else zoomOut();
+}, { passive: false });
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+buildControls();
+updateAll();
+</script>
+</body>
+</html>
