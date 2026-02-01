@@ -97,4 +97,5 @@ pub struct SwapConfig {
     pub titan_token: Option<String>,
     pub dflow_api_url: Option<String>,
     pub dflow_api_key: Option<String>,
+    pub dflow_max_route_length: Option<u32>,
 }

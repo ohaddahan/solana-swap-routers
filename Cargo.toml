@@ -65,8 +65,8 @@ unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
 
-# Prohibit allow attributes - no exceptions
-allow_attributes = "deny"
+# Prohibit bare allow attributes - require reasons
+allow_attributes_without_reason = "deny"
 
 # Allow large error types - error types need rich context for good UX
 result_large_err = "allow"

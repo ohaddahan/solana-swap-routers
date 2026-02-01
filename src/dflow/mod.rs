@@ -17,14 +17,16 @@ pub struct DflowProvider {
     pub client: reqwest::Client,
     pub base_url: String,
     pub api_key: Option<String>,
+    pub max_route_length: Option<u32>,
 }
 
 impl DflowProvider {
-    pub fn new(base_url: Option<String>, api_key: Option<String>) -> Self {
+    pub fn new(base_url: Option<String>, api_key: Option<String>, max_route_length: Option<u32>) -> Self {
         Self {
             client: reqwest::Client::new(),
             base_url: base_url.unwrap_or_else(|| DEFAULT_DFLOW_API_URL.to_string()),
             api_key,
+            max_route_length,
         }
     }
 
@@ -135,6 +137,11 @@ impl DflowProvider {
 
         if let Some(pk) = user_pubkey {
             query.push(("userPublicKey", pk.to_string()));
+        }
+
+        if let Some(max_legs) = self.max_route_length {
+            query.push(("maxRouteLength", max_legs.to_string()));
+            query.push(("onlyDirectRoutes", "false".to_string()));
         }
 
         let mut req = self.client.get(&url).query(&query);

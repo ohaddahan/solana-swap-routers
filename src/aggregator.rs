@@ -38,6 +38,7 @@ impl SwapAggregator {
             titan_token,
             dflow_api_url,
             dflow_api_key,
+            dflow_max_route_length,
         } = config;
 
         #[cfg(not(feature = "jupiter"))]
@@ -45,7 +46,7 @@ impl SwapAggregator {
         #[cfg(not(feature = "titan"))]
         let _ = (titan_ws_url, titan_token);
         #[cfg(not(feature = "dflow"))]
-        let _ = (dflow_api_url, dflow_api_key);
+        let _ = (dflow_api_url, dflow_api_key, dflow_max_route_length);
 
         Self {
             default_slippage_bps,
@@ -54,7 +55,7 @@ impl SwapAggregator {
             #[cfg(feature = "titan")]
             titan: Some(TitanProvider::new(titan_ws_url, titan_token)),
             #[cfg(feature = "dflow")]
-            dflow: Some(DflowProvider::new(dflow_api_url, dflow_api_key)),
+            dflow: Some(DflowProvider::new(dflow_api_url, dflow_api_key, dflow_max_route_length)),
         }
     }
 
