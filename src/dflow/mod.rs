@@ -99,6 +99,12 @@ impl DflowProvider {
             amount,
             slippage_bps: Some(slippage_bps),
             only_direct_routes,
+            taker: None,
+            restrict_intermediate_tokens: None,
+            as_legacy_transaction: None,
+            swap_mode: None,
+            dexes: None,
+            exclude_dexes: None,
         };
 
         let response = self

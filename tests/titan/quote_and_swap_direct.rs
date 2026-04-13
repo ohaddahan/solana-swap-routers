@@ -3,7 +3,7 @@ use crate::common::{
 };
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::signer::Signer;
-use solana_swap::{Provider, SwapAggregator};
+use solana_swap_routers::{Provider, SwapAggregator};
 
 #[tokio::test]
 #[ignore = "requires env vars and real API access"]

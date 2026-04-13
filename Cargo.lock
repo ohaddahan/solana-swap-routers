@@ -4883,7 +4883,7 @@ checksum = "3f24b836eb4d74ec255217bdbe0f24f64a07adeac31aca61f334f91cd4a3b1d5"
 
 [[package]]
 name = "solana-swap-routers"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "bincode",
@@ -5484,9 +5484,9 @@ dependencies = [
 
 [[package]]
 name = "titan-rust-client"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7451997909067142dd7bfb4bc1ac278c781b20ac54de48c3c675940f6d78913c"
+checksum = "46b39c2a788ce86451702dc15175e5c5c6349f502f001f6ef0a1755a6cf939ad"
 dependencies = [
  "anyhow",
  "bytes",

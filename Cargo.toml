@@ -1,6 +1,6 @@
 [package]
 name = "solana-swap-routers"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 authors = ["ohaddahan@gmail.com"]
@@ -28,7 +28,7 @@ rustls = { version = "0.23", features = ["ring"], default-features = false }
 solana-sdk = "2.3"
 solana-client = "2.3"
 solana-address-lookup-table-interface = "2.2"
-titan-rust-client = { version = "0.1.8", features = ["solana"], optional = true }
+titan-rust-client = { version = "0.1.9", features = ["solana"], optional = true }
 
 [features]
 default = ["jupiter", "titan", "dflow"]

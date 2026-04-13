@@ -14,7 +14,7 @@ use tracing::debug;
 
 use crate::{
     error::SwapError,
-    types::{Provider, QuoteRequest, QuoteResponse, SwapResult},
+    types::{Provider, QuoteRequest, QuoteResponse, SwapMode, SwapResult},
 };
 
 use self::types::{
@@ -53,6 +53,15 @@ impl JupiterProvider {
             amount: request.amount,
             slippage_bps: request.slippage_bps.unwrap_or(default_slippage_bps),
             only_direct_routes: request.only_direct_routes,
+            taker: request.taker.map(|p| p.to_string()),
+            restrict_intermediate_tokens: request.restrict_intermediate_tokens,
+            as_legacy_transaction: request.as_legacy_transaction,
+            swap_mode: request.swap_mode.map(|m| match m {
+                SwapMode::ExactIn => "ExactIn".to_string(),
+                SwapMode::ExactOut => "ExactOut".to_string(),
+            }),
+            dexes: request.dexes.clone(),
+            exclude_dexes: request.exclude_dexes.clone(),
         };
 
         let url = format!("{}/quote", self.base_url);
@@ -115,6 +124,8 @@ impl JupiterProvider {
             user_public_key: user_pubkey.to_string(),
             quote_response: quote.provider_data.clone(),
             dynamic_compute_unit_limit: true,
+            skip_user_accounts_rpc_calls: Some(true),
+            wrap_and_unwrap_sol: Some(false),
         };
 
         let url = format!("{}/swap-instructions", self.base_url);

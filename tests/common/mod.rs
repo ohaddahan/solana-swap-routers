@@ -6,7 +6,7 @@ use solana_sdk::{
     transaction::VersionedTransaction,
 };
 
-use solana_swap::{QuoteRequest, QuoteResponse, SwapConfig, SwapResult};
+use solana_swap_routers::{QuoteRequest, QuoteResponse, SwapConfig, SwapResult};
 
 pub struct TestEnv {
     pub input_mint: Pubkey,
@@ -93,6 +93,12 @@ pub fn build_quote_request(env: &TestEnv, only_direct_routes: Option<bool>) -> Q
         amount: env.amount,
         slippage_bps: Some(env.slippage_bps),
         only_direct_routes,
+        taker: None,
+        restrict_intermediate_tokens: None,
+        as_legacy_transaction: None,
+        swap_mode: None,
+        dexes: None,
+        exclude_dexes: None,
     }
 }
 

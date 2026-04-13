@@ -11,4 +11,7 @@ pub mod titan;
 
 pub use aggregator::SwapAggregator;
 pub use error::SwapError;
-pub use types::{Provider, QuoteRequest, QuoteResponse, SwapConfig, SwapResult};
+pub use types::{
+    CpiSwapResult, Provider, QuoteRequest, QuoteResponse, SwapConfig, SwapMode, SwapResult,
+    JUPITER_PROGRAM, TITAN_PROGRAM,
+};

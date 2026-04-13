@@ -9,6 +9,18 @@ pub struct JupiterQuoteParams {
     pub slippage_bps: u16,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub only_direct_routes: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub taker: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub restrict_intermediate_tokens: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub as_legacy_transaction: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub swap_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dexes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exclude_dexes: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,6 +43,10 @@ pub struct JupiterSwapRequest {
     pub user_public_key: String,
     pub quote_response: serde_json::Value,
     pub dynamic_compute_unit_limit: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skip_user_accounts_rpc_calls: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub wrap_and_unwrap_sol: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
